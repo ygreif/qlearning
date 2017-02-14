@@ -68,7 +68,6 @@ class Trainer(object):
         return {'reward': reward, 'epoch': epoch}
 
     def run(self, max_steps=1000):
-        self.agent.new_epoch()
         state = self.env.reset()
         step = 0
         while True:
