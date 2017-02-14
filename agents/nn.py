@@ -1,20 +1,33 @@
 import tensorflow as tf
+import math
 
 
 class FullyConnectedLayer(object):
 
-    def __init__(self, inp, dim, relu=False):
-        self.W = tf.Variable(tf.random_normal(dim))
-        self.b = tf.Variable(tf.zeros(dim[1]))
-        if relu:
+    def __init__(self, inp, dim, nonlinearity=False, init='normal'):
+        if init == 'normal':
+            self.W = tf.Variable(tf.random_normal(dim))
+            self.b = tf.Variable(tf.zeros(dim[1]))
+        elif init == 'uniform':
+            bound = math.sqrt(6) / math.sqrt(dim[0] + dim[1])
+            self.W = tf.Variable(
+                tf.random_uniform(dim, minval=-1 * bound, maxval=bound))
+            self.b = tf.Variable(tf.zeros(dim[1]))
+        if nonlinearity == 'relu':
             self.out = tf.nn.relu(tf.matmul(inp, self.W) + self.b)
+        elif nonlinearity == 'sigmoid':
+            self.out = tf.nn.sigmoid(tf.matmul(inp, self.W) + self.b)
+        elif nonlinearity == 'tanh':
+            self.out = tf.nn.tanh(tf.matmul(inp, self.W) + self.b)
+        elif nonlinearity == 'softplus':
+            self.out = tf.nn.tanh(tf.matmul(inp, self.W) + self.b)
         else:
             self.out = tf.matmul(inp, self.W) + self.b
 
 
 class NeuralNetwork(object):
 
-    def __init__(self, indim, enddim, hidden_layers):
+    def __init__(self, indim, enddim, hidden_layers, nonlinearity, init):
         self.layers = []
         self.x = tf.placeholder(tf.float32, [None, indim])
 
@@ -22,11 +35,11 @@ class NeuralNetwork(object):
         prev_dim = indim
         for out_dim in hidden_layers:
             self.layers.append(
-                FullyConnectedLayer(inp, (prev_dim, out_dim), relu=True))
+                FullyConnectedLayer(inp, (prev_dim, out_dim), nonlinearity=nonlinearity, init=init))
             inp = self.layers[-1].out
             prev_dim = out_dim
         self.layers.append(FullyConnectedLayer(
-            inp, (prev_dim, enddim), relu=False))
+            inp, (prev_dim, enddim), nonlinearity=False))
         self.out = self.layers[-1].out
 
 

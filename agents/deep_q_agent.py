@@ -13,10 +13,11 @@ class DeepQAgent(object):
         self.register_env(env)
         self.create_nn(parameters)
         self.minibatch_size = parameters.minibatch_size
+        self.eps = parameters.eps
 
     def create_nn(self, parameters):
         network = nn.NeuralNetwork(
-            self.Xdim, self.Ydim, parameters.hidden_layers)
+            self.Xdim, self.Ydim, parameters.hidden_layers, parameters.nonlinearity, parameters.init)
         self.q = nn.NeuralAgent(network, parameters, self.discount)
 
     def register_env(self, env):
@@ -25,7 +26,7 @@ class DeepQAgent(object):
             self.Ydim = env.action_space.n
 
     def train_epoch(self, env, target_reward=1000, learn=True):
-        eps = .1
+        eps = self.eps
         done = False
         cum_reward = 0
         state = env.reset()
