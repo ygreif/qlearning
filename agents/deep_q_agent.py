@@ -6,17 +6,23 @@ import nn
 
 class DeepQAgent(object):
 
-    def __init__(self, hidden_layers, discount=1.0, memory_size=10000):
-        self.hidden_layers = hidden_layers
+    def __init__(self, env, parameters, discount=.99):
         self.discount = discount
-        self.memory = memory.Memory(memory_size)
+
+        self.memory = memory.Memory(parameters.memory_size)
+        self.register_env(env)
+        self.create_nn(parameters)
+        self.minibatch_size = parameters.minibatch_size
+
+    def create_nn(self, parameters):
+        network = nn.NeuralNetwork(
+            self.Xdim, self.Ydim, parameters.hidden_layers)
+        self.q = nn.NeuralAgent(network, parameters, self.discount)
 
     def register_env(self, env):
         self.Xdim = env.observation_space.shape[0]
         if type(env.action_space) == gym.spaces.discrete.Discrete:
             self.Ydim = env.action_space.n
-        network = nn.NeuralNetwork(self.Xdim, self.Ydim, self.hidden_layers)
-        self.q = nn.NeuralAgent(network, self.discount)
 
     def train_epoch(self, env, target_reward=1000, learn=True):
         eps = .1
@@ -37,8 +43,12 @@ class DeepQAgent(object):
             state = next_state
         return cum_reward
 
+    def action(self, state):
+        return self.q.action([state])
+
     def learn(self):
-        state, rewards, next_state, terminals = self.memory.minibatch(1000)
+        state, rewards, next_state, terminals = self.memory.minibatch(
+            self.minibatch_size)
         self.q.trainstep(state, rewards, next_state, terminals)
 
     def loss(self):

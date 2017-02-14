@@ -3,10 +3,13 @@ import tensorflow as tf
 
 class FullyConnectedLayer(object):
 
-    def __init__(self, inp, dim):
+    def __init__(self, inp, dim, relu=False):
         self.W = tf.Variable(tf.random_normal(dim))
         self.b = tf.Variable(tf.zeros(dim[1]))
-        self.out = tf.matmul(inp, self.W) + self.b
+        if relu:
+            self.out = tf.nn.relu(tf.matmul(inp, self.W) + self.b)
+        else:
+            self.out = tf.matmul(inp, self.W) + self.b
 
 
 class NeuralNetwork(object):
@@ -19,16 +22,17 @@ class NeuralNetwork(object):
         prev_dim = indim
         for out_dim in hidden_layers:
             self.layers.append(
-                FullyConnectedLayer(inp, (prev_dim, out_dim)))
+                FullyConnectedLayer(inp, (prev_dim, out_dim), relu=True))
             inp = self.layers[-1].out
             prev_dim = out_dim
-        self.layers.append(FullyConnectedLayer(inp, (prev_dim, enddim)))
+        self.layers.append(FullyConnectedLayer(
+            inp, (prev_dim, enddim), relu=False))
         self.out = self.layers[-1].out
 
 
 class NeuralAgent(object):
 
-    def __init__(self, nn, discount=.95):
+    def __init__(self, nn, parameters, discount=.95):
         self.discount = tf.constant(discount)
 
         self.x = nn.x
@@ -43,8 +47,13 @@ class NeuralAgent(object):
 
         self.target = tf.transpose(tf.placeholder(tf.float32, [None, 1]))
         self.loss = tf.reduce_sum(tf.square(self.target - self.q))
-        self.train_step = tf.train.AdamOptimizer(
-            learning_rate=0.01).minimize(self.loss)
+
+        if parameters.learner == 'adam':
+            self.train_step = tf.train.AdamOptimizer(
+                learning_rate=parameters.learning_rate).minimize(self.loss)
+        else:
+            self.train_step = tf.train.GradientDescentOptimizer(
+                learning_rate=parameters.learning_rate).minimize(self.loss)
 
         init = tf.global_variables_initializer()
         self.session = tf.Session()
