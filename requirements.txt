@@ -10,6 +10,7 @@ entrypoints==0.2.2
 enum34==1.1.6
 funcsigs==1.0.2
 functools32==3.2.3.post2
+gym==0.7.3
 html5lib==0.9999999
 ipykernel==4.5.2
 ipython==5.2.2
@@ -35,9 +36,11 @@ pickleshare==0.7.4
 prompt-toolkit==1.0.13
 protobuf==3.2.0
 ptyprocess==0.5.1
+pyglet==1.2.4
 Pygments==2.2.0
 pyparsing==2.1.10
 pyzmq==16.0.2
+requests==2.13.0
 scandir==1.4
 simplegeneric==0.8.1
 singledispatch==3.4.0.3
