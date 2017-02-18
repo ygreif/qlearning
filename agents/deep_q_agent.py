@@ -14,11 +14,12 @@ class DeepQAgent(object):
         self.create_nn(parameters)
         self.minibatch_size = parameters.minibatch_size
         self.eps = parameters.eps
+        self.use_prob = parameters.use_prob
 
     def create_nn(self, parameters):
         network = nn.NeuralNetwork(
-            self.Xdim, self.Ydim, parameters.hidden_layers, parameters.nonlinearity, parameters.init)
-        self.q = nn.NeuralAgent(network, parameters, self.discount)
+            self.Xdim, self.Ydim, parameters.hidden_layers, parameters.nonlinearity, parameters.init, parameters.init_bias)
+        self.q = nn.QApproximation(network, parameters, self.discount)
 
     def register_env(self, env):
         self.Xdim = env.observation_space.shape[0]
@@ -32,7 +33,10 @@ class DeepQAgent(object):
         state = env.reset()
         while not done and cum_reward < target_reward:
             if np.random.uniform() < eps:
-                action = np.random.randint(0, self.Ydim)
+                if self.use_prob:
+                    action = self.q.random_action([state])
+                else:
+                    action = np.random.randint(0, self.Ydim)
             else:
                 action = self.q.action([state])
             next_state, reward, done, _ = env.step(action)

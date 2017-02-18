@@ -5,10 +5,14 @@ import random
 import math
 import deep_q_agent
 
+# best learning_rate=0.001, learner=adam, hidden_layers=190,174,72,
+# memory_size=10000, minibatch=1000, eps=0.0960745411059,
+# nonlinearity=softplus, init=normal
+
 
 class Parameters(object):
 
-    def __init__(self, learning_rate=0.001, learner='adam', hidden_layers=[20], memory_size=10000, minibatch_size=100, eps=.1, nonlinearity='relu', init='normal'):
+    def __init__(self, learning_rate=0.001, learner='adam', hidden_layers=[20], memory_size=10000, minibatch_size=100, eps=.1, nonlinearity='relu', init='normal', init_bias=0.0, use_prob=False):
         self.learning_rate = learning_rate
         self.learner = learner
         self.hidden_layers = hidden_layers
@@ -17,9 +21,11 @@ class Parameters(object):
         self.eps = eps
         self.nonlinearity = nonlinearity
         self.init = init
+        self.init_bias = float(init_bias)
+        self.use_prob = use_prob
 
     def __str__(self):
-        return "learning_rate={}, learner={}, hidden_layers={}, memory_size={}, minibatch={}, eps={}, nonlinearity={}, init={}".format(str(self.learning_rate), str(self.learner), ','.join([str(layer) for layer in self.hidden_layers]), str(self.memory_size), str(self.minibatch_size), str(self.eps), str(self.nonlinearity), self.init)
+        return "learning_rate={}, learner={}, hidden_layers={}, memory_size={}, minibatch={}, eps={}, nonlinearity={}, init={}, init_bias={}, use_prob={}".format(str(self.learning_rate), str(self.learner), ','.join([str(layer) for layer in self.hidden_layers]), str(self.memory_size), str(self.minibatch_size), str(self.eps), str(self.nonlinearity), self.init, str(self.init_bias), str(self.use_prob))
 
 
 class Trainer(object):
@@ -29,35 +35,26 @@ class Trainer(object):
 
     def gen_parameters(self):
         hidden_layers = []
-        for _ in range(random.randint(1, 3)):
-            hidden_layers.append(random.randint(5, 200))
-        if random.random() < .9:
-            learner = 'adam'
-        else:
-            learner = 'gradient'
-        nonlinearity = random.choice([False, 'relu', 'sigmoid', 'tanh'])
-
-        learning_rate = math.pow(10, -1 * random.randint(2, 6))
-        minibatch_size = math.pow(10, random.randint(1, 3))
-        eps = random.random() / 5.0
-
-        return Parameters(
-            learning_rate=learning_rate, learner=learner, hidden_layers=hidden_layers, minibatch_size=minibatch_size, eps=eps, nonlinearity=nonlinearity)
-
-    def gen_parameters2(self):
-        hidden_layers = []
-        for _ in range(random.randint(2, 4)):
-            hidden_layers.append(random.randint(40, 200))
+        for _ in range(random.randint(2, 5)):
+            hidden_layers.append(random.randint(40, 300))
         learner = 'adam'
-        nonlinearity = random.choice(['softplus', 'tanh'])
+        nonlinearity = random.choice(['softplus', 'tanh', 'tanh'])
         init = random.choice(['normal', 'normal', 'uniform'])
 
         learning_rate = math.pow(10, -1 * random.randint(3, 5))
         minibatch_size = math.pow(10, random.randint(1, 3))
-        eps = random.random() / 5.0
+
+        if random.random() < .5:
+            use_prob = False
+            init_bias = random.choice([0.0, 1.0])
+            eps = random.random() / 5.0
+        else:
+            use_prob = True
+            eps = random.random()
+            init_bias = random.choice([1.0, 1.0, 10.0])
 
         return Parameters(
-            learning_rate=learning_rate, learner=learner, hidden_layers=hidden_layers, minibatch_size=minibatch_size, eps=eps, nonlinearity=nonlinearity, init=init)
+            learning_rate=learning_rate, learner=learner, hidden_layers=hidden_layers, minibatch_size=minibatch_size, eps=eps, nonlinearity=nonlinearity, init=init, init_bias=init_bias, use_prob=use_prob)
 
     def train(self, target_reward, max_epochs=200, parameters=Parameters(), out=True):
         self.agent = deep_q_agent.DeepQAgent(self.env, parameters)
