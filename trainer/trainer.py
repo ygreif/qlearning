@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-
 import gym
 import random
 import math
