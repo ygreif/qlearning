@@ -14,14 +14,8 @@ class FullyConnectedLayer(object):
             self.W = tf.Variable(
                 tf.random_uniform(dim, minval=-1 * bound, maxval=bound))
             self.b = tf.Variable(tf.zeros(dim[1]))
-        if nonlinearity == 'relu':
-            self.out = tf.nn.relu(tf.matmul(inp, self.W) + self.b)
-        elif nonlinearity == 'sigmoid':
-            self.out = tf.nn.sigmoid(tf.matmul(inp, self.W) + self.b)
-        elif nonlinearity == 'tanh':
-            self.out = tf.nn.tanh(tf.matmul(inp, self.W) + self.b)
-        elif nonlinearity == 'softplus':
-            self.out = tf.nn.softplus(tf.matmul(inp, self.W) + self.b)
+        if nonlinearity:
+            self.out = nonlinearity(tf.matmul(inp, self.W) + self.b)
         else:
             self.out = tf.matmul(inp, self.W) + self.b
 
@@ -52,17 +46,28 @@ class QApproximation(object):
         self.discount = tf.constant(discount)
         self.choices = range(nn.enddim)
 
+        self._setup_q_calculation(nn)
+        self._setup_next_q_calulcation(nn)
+        self._setup_train_step(nn, parameters)
+
+        init = tf.global_variables_initializer()
+        self.session = tf.Session()
+        self.session.run(init)
+
+    def _setup_q_calculation(self, nn):
         self.x = nn.x
         self.qprobs = tf.nn.softmax(nn.out)
         self.act = tf.argmax(nn.out, axis=1)
         self.q = tf.transpose(tf.reduce_max(nn.out, axis=1))
 
+    def _setup_next_q_calulcation(self, nn):
         self.r = tf.placeholder(tf.float32, [None, 1])
         self.terminal = tf.placeholder(tf.float32, [None, 1])
 
         self.update = self.q * \
             tf.transpose(self.terminal * self.discount) + tf.transpose(self.r)
 
+    def _setup_train_step(self, nn, parameters):
         self.target = tf.transpose(tf.placeholder(tf.float32, [None, 1]))
         self.loss = tf.reduce_sum(tf.square(self.target - self.q))
 
@@ -72,10 +77,6 @@ class QApproximation(object):
         else:
             self.train_step = tf.train.GradientDescentOptimizer(
                 learning_rate=parameters.learning_rate).minimize(self.loss)
-
-        init = tf.global_variables_initializer()
-        self.session = tf.Session()
-        self.session.run(init)
 
     def random_action(self, state):
         probs = list(

@@ -3,16 +3,13 @@ import matplotlib.pyplot as plt
 import gym
 import random
 import math
-import deep_q_agent
-
-# best learning_rate=0.001, learner=adam, hidden_layers=190,174,72,
-# memory_size=10000, minibatch=1000, eps=0.0960745411059,
-# nonlinearity=softplus, init=normal
+from agents import deep_q_agent
+import tensorflow as tf
 
 
 class Parameters(object):
 
-    def __init__(self, learning_rate=0.001, learner='adam', hidden_layers=[20], memory_size=10000, minibatch_size=100, eps=.1, nonlinearity='relu', init='normal', init_bias=0.0, use_prob=False):
+    def __init__(self, learning_rate=0.001, learner='adam', hidden_layers=[20], memory_size=10000, minibatch_size=100, eps=.1, nonlinearity=tf.nn.tanh, init='normal', init_bias=0.0, use_prob=False):
         self.learning_rate = learning_rate
         self.learner = learner
         self.hidden_layers = hidden_layers
@@ -37,8 +34,9 @@ class Trainer(object):
         hidden_layers = []
         for _ in range(random.randint(2, 5)):
             hidden_layers.append(random.randint(40, 300))
-        learner = 'adam'
-        nonlinearity = random.choice(['softplus', 'tanh', 'tanh'])
+        lear
+        ner = 'adam'
+        nonlinearity = random.choice([tf.nn.softplus, tf.nn.tanh, tf.nn.tanh])
         init = random.choice(['normal', 'normal', 'uniform'])
 
         learning_rate = math.pow(10, -1 * random.randint(3, 5))
