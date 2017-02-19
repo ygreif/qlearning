@@ -29,9 +29,9 @@ if __name__ == '__main__':
         '--memory_size', dest='memory_size', type=int, default=10000)
     parser.add_argument(
         '--minibatch_size', dest='minibatch_size', type=int, default=1000)
-    parser.add_argument('--eps', dest='eps', type=int, default=.096)
+    parser.add_argument('--eps', dest='eps', type=float, default=.096)
     parser.add_argument(
-        '--learning_rate', dest='learning_rate', type=int, default=.001)
+        '--learning_rate', dest='learning_rate', type=float, default=.001)
 
     args = parser.parse_args()
 

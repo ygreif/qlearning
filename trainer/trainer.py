@@ -7,6 +7,12 @@ from agents import deep_q_agent
 import tensorflow as tf
 
 
+# learning_rate=1e-06, learner=adam, hidden_layers=245,297,218, memory_size=10000, minibatch=1000, eps=0.111775048017, nonlinearity=<function tanh at 0x7fe5e97756e0>, init=normal, init_bias=0.0, use_prob=False
+# learning_rate=0.0001, learner=adam, hidden_layers=238,108,285,273,
+# memory_size=10000, minibatch=1000, eps=0.543402880186,
+# nonlinearity=<function tanh at 0x7fe5e97756e0>, init=uniform,
+# init_bias=1.0, use_prob=True
+
 class Parameters(object):
 
     def __init__(self, learning_rate=0.001, learner='adam', hidden_layers=[20], memory_size=10000, minibatch_size=100, eps=.1, nonlinearity=tf.nn.tanh, init='normal', init_bias=0.0, use_prob=False):
@@ -31,25 +37,18 @@ class Trainer(object):
         self.env = gym.make(env_name)
 
     def gen_parameters(self):
-        hidden_layers = []
-        for _ in range(random.randint(2, 5)):
-            hidden_layers.append(random.randint(40, 300))
-        lear
-        ner = 'adam'
-        nonlinearity = random.choice([tf.nn.softplus, tf.nn.tanh, tf.nn.tanh])
-        init = random.choice(['normal', 'normal', 'uniform'])
-
-        learning_rate = math.pow(10, -1 * random.randint(3, 5))
-        minibatch_size = math.pow(10, random.randint(1, 3))
-
-        if random.random() < .5:
-            use_prob = False
-            init_bias = random.choice([0.0, 1.0])
-            eps = random.random() / 5.0
-        else:
-            use_prob = True
-            eps = random.random()
-            init_bias = random.choice([1.0, 1.0, 10.0])
+        hidden_layers = random.choice((
+            [200, 200, 200], [100, 100, 100], [150, 150]))
+        use_prob = False
+        learner = 'adam'
+        nonlinearity = tf.nn.tanh
+        init = random.choice(['normal', 'normal'])
+        init_bias = 0.0
+        learning_rate = learning_rate = random.choice(
+            [.001, .0005, .002, .005])
+        minibatch_size = random.choice([500, 1000, 1500, 2000])
+        memory_size = random.choice([10000, 5000, 20000])
+        eps = random.random() / 5.0
 
         return Parameters(
             learning_rate=learning_rate, learner=learner, hidden_layers=hidden_layers, minibatch_size=minibatch_size, eps=eps, nonlinearity=nonlinearity, init=init, init_bias=init_bias, use_prob=use_prob)
@@ -59,7 +58,7 @@ class Trainer(object):
 
         for epoch in range(max_epochs):
             reward = self.agent.train_epoch(self.env, target_reward)
-            if epoch % 250 == 0:
+            if epoch % 100 == 0:
                 loss = self.agent.loss()
                 if out:
                     print "Epoch {} Reward {} Loss {}".format(epoch, reward, loss)

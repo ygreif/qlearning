@@ -32,11 +32,11 @@ class NeuralNetwork(object):
         prev_dim = indim
         for out_dim in hidden_layers:
             self.layers.append(
-                FullyConnectedLayer(inp, (prev_dim, out_dim), nonlinearity=nonlinearity, init=init, init_bias=init_bias))
+                FullyConnectedLayer(inp, (prev_dim, out_dim), nonlinearity=nonlinearity, init=init, init_bias=0.0))
             inp = self.layers[-1].out
             prev_dim = out_dim
         self.layers.append(FullyConnectedLayer(
-            inp, (prev_dim, enddim), nonlinearity=False))
+            inp, (prev_dim, enddim), nonlinearity=False, init_bias=init_bias))
         self.out = self.layers[-1].out
 
 
