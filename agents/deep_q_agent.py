@@ -17,14 +17,25 @@ class DeepQAgent(object):
         self.use_prob = parameters.use_prob
 
     def create_nn(self, parameters):
-        network = nn.NeuralNetwork(
-            self.Xdim, self.Ydim, parameters.hidden_layers, parameters.nonlinearity, parameters.init, parameters.init_bias)
-        self.q = nn.QApproximation(network, parameters, self.discount)
+        if self.discount:
+            network = nn.NeuralNetwork(
+                self.Xdim, self.Ydim, parameters.hidden_layers, parameters.nonlinearity, parameters.init, parameters.init_bias)
+            self.q = nn.QApproximation(network, parameters, self.discount)
+        else:
+            network = nn.NeuralNetwork(
+                self.Xdim, parameters.hidden_layers[-1], parameters.hidden_layers[:-1], parameters.nonlinearity, parameters.init, parameters.init_bias)
+            self.q = nn.NAFApproximation(nn, self.Ydim)
 
     def register_env(self, env):
         self.Xdim = env.observation_space.shape[0]
         if type(env.action_space) == gym.spaces.discrete.Discrete:
             self.Ydim = env.action_space.n
+            self.discrete = True
+        elif type(env.action_space) == gym.spaces.box.Box:
+            self.discount = False
+            self.Ydim = len(env.action_space.low)
+            self.low = env.action_space.low
+            self.high = env.action_space.high
 
     def train_epoch(self, env, target_reward=1000, learn=True):
         eps = self.eps
@@ -33,10 +44,7 @@ class DeepQAgent(object):
         state = env.reset()
         while not done and cum_reward < target_reward:
             if np.random.uniform() < eps:
-                if self.use_prob:
-                    action = self.q.random_action([state])
-                else:
-                    action = np.random.randint(0, self.Ydim)
+                action = np.random.randint(0, self.Ydim)
             else:
                 action = self.q.action([state])
             next_state, reward, done, _ = env.step(action)
@@ -52,9 +60,9 @@ class DeepQAgent(object):
         return self.q.action([state])
 
     def learn(self):
-        state, rewards, next_state, terminals = self.memory.minibatch(
+        state, action, rewards, next_state, terminals = self.memory.minibatch(
             self.minibatch_size)
-        self.q.trainstep(state, rewards, next_state, terminals)
+        self.q.trainstep(state, action, rewards, next_state, terminals)
 
     def loss(self):
         state, rewards, next_state, terminals = self.memory.minibatch(1000)

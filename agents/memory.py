@@ -15,6 +15,7 @@ class Memory(object):
         replays = np.random.choice(self.memory, size)
 
         state = [replay['state'] for replay in replays]
+        action = [replay['action'] for replay in replays]
         rewards = [[replay['reward']] for replay in replays]
         next_state = [replay['next_state'] for replay in replays]
         terminals = [[0] if replay['done'] else [1] for replay in replays]
