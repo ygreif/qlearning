@@ -17,14 +17,15 @@ class DeepQAgent(object):
         self.use_prob = parameters.use_prob
 
     def create_nn(self, parameters):
-        if self.discount:
+        if self.discrete:
             network = nn.NeuralNetwork(
                 self.Xdim, self.Ydim, parameters.hidden_layers, parameters.nonlinearity, parameters.init, parameters.init_bias)
             self.q = nn.QApproximation(network, parameters, self.discount)
         else:
             network = nn.NeuralNetwork(
                 self.Xdim, parameters.hidden_layers[-1], parameters.hidden_layers[:-1], parameters.nonlinearity, parameters.init, parameters.init_bias)
-            self.q = nn.NAFApproximation(nn, self.Ydim)
+            self.q = nn.NAFApproximation(
+                network, self.Ydim, parameters.learning_rate, self.discount)
 
     def register_env(self, env):
         self.Xdim = env.observation_space.shape[0]
@@ -32,7 +33,7 @@ class DeepQAgent(object):
             self.Ydim = env.action_space.n
             self.discrete = True
         elif type(env.action_space) == gym.spaces.box.Box:
-            self.discount = False
+            self.discrete = False
             self.Ydim = len(env.action_space.low)
             self.low = env.action_space.low
             self.high = env.action_space.high
@@ -47,8 +48,17 @@ class DeepQAgent(object):
                 action = np.random.randint(0, self.Ydim)
             else:
                 action = self.q.action([state])
+                print "x", action
+            print "action", action
             next_state, reward, done, _ = env.step(action)
+# env.render()
 
+            print "state", state, "next_state", next_state, "reward", reward
+            if action[0] > self.high:
+                reward = -1 * action[0]
+            elif action[0] < self.low:
+                reward = action[0]
+            print "reward is now ", reward
             self.memory.append(state, action, reward, next_state, done)
             if learn:
                 self.learn()
@@ -60,16 +70,19 @@ class DeepQAgent(object):
         return self.q.action([state])
 
     def learn(self):
-        state, action, rewards, next_state, terminals = self.memory.minibatch(
+        state, actions, rewards, next_state, terminals = self.memory.minibatch(
             self.minibatch_size)
-        self.q.trainstep(state, action, rewards, next_state, terminals)
+        print "minibatch", state, actions, rewards, next_state, terminals
+        self.q.trainstep(state, actions, rewards, next_state, terminals)
 
     def loss(self):
-        state, rewards, next_state, terminals = self.memory.minibatch(1000)
-        return np.sqrt(self.q.calcloss(state, rewards, next_state, terminals)) / 1000
+        state, actions, rewards, next_state, terminals = self.memory.minibatch(
+            1000)
+        return np.sqrt(self.q.calcloss(state, actions, rewards, next_state, terminals)) / self.minibatch_size
 
     def sample(self):
-        state, rewards, next_state, terminals = self.memory.minibatch(10)
+        state, actions, rewards, next_state, terminals = self.memory.minibatch(
+            10)
         storedq = self.q.storedq(state)
         print np.mean(storedq)
 
