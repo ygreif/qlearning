@@ -10,7 +10,7 @@ nnv = agents.nn.NeuralNetwork(1, 1, [10], nonlinearity=tf.nn.relu)
 nnp = agents.nn.NeuralNetwork(1, 1, [1], nonlinearity=tf.nn.tanh)
 nnq = agents.nn.NeuralNetwork(1, 1, [10], nonlinearity=tf.nn.relu)
 print "Setting up NAF"
-naf = agents.nn.NAFApproximation(nnv, nnp, nnq, 1, .1, 0.5)
+naf = agents.nn.NAFApproximation(nnv, nnp, nnq, 1, .01, 0.5)
 state = 0
 print "Start"
 print "action0", naf.action([[0]], explore=False)
@@ -41,7 +41,7 @@ for i in range(10000):
     else:
         reward += (10 - abs(action))
     mem.append([prev_state], [action], reward, [state], False)
-    if i % 100 == 0:
+    if i % 1000 == 0:
         value = naf.value([[prev_state]])
         Q = naf.storedq([[prev_state]], [[action]])
         P = naf.calcP([[prev_state]])
