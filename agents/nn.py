@@ -43,10 +43,9 @@ class NeuralNetwork(object):
 class NAFApproximation(object):
 
     def to_semi_definite(self, M):
-#        diag = tf.sqrt(tf.exp(tf.matrix_diag_part(M)))
-#        L = tf.matrix_set_diag(M * self.mask, diag)
-#        return tf.matmul(L, tf.transpose(L))
-        return self.mask
+        diag = tf.sqrt(tf.exp(tf.matrix_diag_part(M)))
+        L = tf.matrix_set_diag(M * self.mask, diag)
+        return tf.matmul(L, tf.transpose(L))
 
     def __init__(self, nnv, nnp, nnq, lower, upper, actiondim, learning_rate, discount):
         self.discount = tf.constant(discount)
@@ -65,10 +64,10 @@ class NAFApproximation(object):
         self.session.run(init)
 
     def _setup_p_calculation(self, nn, actiondim):
-#        mask = np.ones((actiondim, actiondim))
-        mask = np.zeros((actiondim, actiondim))
-        np.fill_diagonal(mask, 1.0)
-#        mask[np.triu_indices(actiondim)] = 0
+        mask = np.ones((actiondim, actiondim))
+#        mask = np.zeros((actiondim, actiondim))
+#        np.fill_diagonal(mask, 1.0)
+        mask[np.triu_indices(actiondim)] = 0
         self.mask = tf.constant(mask, dtype=tf.float32)
         self.px = nn.x
 #        self.layer = FullyConnectedLayer(
@@ -103,7 +102,7 @@ class NAFApproximation(object):
     def _setup_train_step(self, learning_rate):
         self.target = tf.placeholder(tf.float32, [None, 1])
         self.actionloss = tf.reduce_sum(tf.abs(tf.to_float(tf.greater(self.mu, self.upper)) * self.mu + tf.to_float(tf.less(
-            self.mu, self.lower)) * self.mu))
+            self.mu, self.lower)) * self.mu)) * 100
         self.loss = tf.reduce_sum(
             tf.square(self.target - self.Q))
 

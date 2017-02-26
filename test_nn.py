@@ -25,7 +25,7 @@ for i in range(100):
     naf.coldstart(x, target)
 naf.renderBestA()
 
-for i in range(10000):
+for i in range(5000):
     action = naf.action([[state]], explore=True)[0]
     prev_state = state
     state = state + action + numpy.random.normal(0) / 4.0
@@ -35,11 +35,10 @@ for i in range(10000):
         state = 60
     reward = 10 - 1 * abs(state - 20)
     if action > 2:
-        reward -= 10.0 * action
+        action = 2
     elif action < -2:
-        reward += 10.0 * action
-    else:
-        reward += (10 - abs(action))
+        action = -2
+    reward += (10 - abs(action))
     mem.append([prev_state], [action], reward, [state], False)
     if i % 1000 == 0:
         value = naf.value([[prev_state]])
