@@ -48,8 +48,10 @@ class NAFApproximation(object):
 #        return tf.matmul(L, tf.transpose(L))
         return self.mask
 
-    def __init__(self, nnv, nnp, nnq, actiondim, learning_rate, discount):
+    def __init__(self, nnv, nnp, nnq, lower, upper, actiondim, learning_rate, discount):
         self.discount = tf.constant(discount)
+        self.lower = tf.constant(lower)
+        self.upper = tf.constant(upper)
         self.vx = nnv.x
 
         self.v = nnv.out
@@ -100,10 +102,13 @@ class NAFApproximation(object):
 
     def _setup_train_step(self, learning_rate):
         self.target = tf.placeholder(tf.float32, [None, 1])
-        self.loss = tf.reduce_sum(tf.square(self.target - self.Q))
+        self.actionloss = tf.reduce_sum(tf.abs(tf.to_float(tf.greater(self.mu, self.upper)) * self.mu + tf.to_float(tf.less(
+            self.mu, self.lower)) * self.mu))
+        self.loss = tf.reduce_sum(
+            tf.square(self.target - self.Q))
 
         self.train_step = tf.train.AdamOptimizer(
-            learning_rate=learning_rate).minimize(self.loss)
+            learning_rate=learning_rate).minimize(self.loss + self.actionloss)
 
     def calcA(self, x, action):
         return self.session.run(self.a, feed_dict={self.px: x, self.qx: x, self.action_inp: action})
