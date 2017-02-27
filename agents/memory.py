@@ -12,7 +12,9 @@ class Memory(object):
             {'state': state, 'action': action, 'reward': reward, 'next_state': next_state, 'done': done})
 
     def minibatch(self, size):
-        replays = np.random.choice(self.memory, size)
+        idx_batch = set(
+            np.random.choice(np.arange(0, len(self.memory)), size))
+        replays = [val for i, val in enumerate(self.memory) if i in idx_batch]
 
         state = [replay['state'] for replay in replays]
         action = [replay['action'] for replay in replays]
