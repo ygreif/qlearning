@@ -4,10 +4,10 @@ import numpy as np
 
 class DeltaStrategy(object):
 
-    def __init__(self, epoch, scale, decay, max_steps=250):
+    def __init__(self, epoch, scale, decay, max_steps=1000, target=1000):
         self.scale = max(scale * (decay - epoch) / float(decay), 0.0)
         self.max_steps = max_steps
-        self.target = 1000
+        self.target = target
 
     def explore(self, action):
         return action + np.random.normal(scale=self.scale, size=len(action))
@@ -41,7 +41,6 @@ class Agent(object):
             cum_reward += reward
             state = next_state
             steps += 1
-#            env.render()
         return cum_reward
 
     def action(self, state):

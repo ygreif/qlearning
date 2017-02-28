@@ -15,7 +15,7 @@ class SetupNAF(object):
         actiondim = len(env.action_space.low)
         low = env.action_space.low
         high = env.action_space.high
-
+        print low, high
         nnv = nn.NeuralNetwork(indim, 1, **nnvParameters)
         nnp = nn.NeuralNetwork(indim, actiondim ** 2, **nnpParameters)
         nnq = nn.NeuralNetwork(indim, 1, **nnqParameters)
@@ -25,12 +25,16 @@ class SetupNAF(object):
         # initialize NAF so actions are in range
         n = 1000
         success = False
+        obs_space_small = gym.spaces.box.Box(-100, 100, shape=(4,))
+        print obs_space_small.shape
+        print env.observation_space.shape
         target_action = low + (high - low) / 2.0
         targets = [target_action for i in range(n)]
         for _ in range(1000):
-            states = [env.observation_space.sample() for i in range(n)]
+#            states = [env.observation_space.sample() for i in range(n)]
+            states = [obs_space_small.sample() for i in range(n)]
             naf.coldstart(states, targets)
-            states = [env.observation_space.sample() for i in range(n)]
+            states = [obs_space_small.sample() for i in range(n)]
             actions = naf.actions(states)
             if np.all(np.less(actions, high)) and np.all(np.greater(actions, low)):
                 success = True
