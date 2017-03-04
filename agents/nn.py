@@ -2,6 +2,9 @@ import tensorflow as tf
 import math
 
 
+keep_prob = tf.placeholder(tf.float32)
+
+
 class FullyConnectedLayer(object):
 
     def __init__(self, inp, dim, nonlinearity=False, init='normal', init_bias=0.0):
@@ -13,10 +16,12 @@ class FullyConnectedLayer(object):
             self.W = tf.Variable(
                 tf.random_uniform(dim, minval=-1 * bound, maxval=bound))
             self.b = tf.Variable(tf.zeros(dim[1]))
+
+        drop_out = tf.nn.dropout(tf.matmul(inp, self.W) + self.b, keep_prob)
         if nonlinearity:
-            self.out = nonlinearity(tf.matmul(inp, self.W) + self.b)
+            self.out = nonlinearity(drop_out)
         else:
-            self.out = tf.matmul(inp, self.W) + self.b
+            self.out = drop_out
 
 
 class NeuralNetwork(object):

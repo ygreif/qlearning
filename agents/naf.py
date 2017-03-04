@@ -52,7 +52,7 @@ class NAFApproximation(object):
         L = tf.matrix_set_diag(M * self.mask, diag)
         return tf.matmul(L, tf.transpose(L))
 
-    def __init__(self, nnv, nnp, nnq, low, high, actiondim, learning_rate, discount):
+    def __init__(self, nnv, nnp, nnq, low, high, actiondim, learning_rate, discount, keep_prob=.5):
         self.discount = tf.constant(discount, dtype=tf.float32)
         self.low = tf.constant(low, dtype=tf.float32)
         self.high = tf.constant(high, dtype=tf.float32)
@@ -63,6 +63,7 @@ class NAFApproximation(object):
         self._setup_q_calculation(nnq, actiondim)
         self._setup_next_q_calulcation()
         self._setup_train_step(learning_rate)
+        self.keep_prob = keep_prob
 
         init = tf.global_variables_initializer()
         self.session = tf.Session()
@@ -119,40 +120,41 @@ class NAFApproximation(object):
         saver.restore(self.session, checkpoint_file)
 
     def calcA(self, x, action):
-        return self.session.run(self.a, feed_dict={self.px: x, self.qx: x, self.action_inp: action})
+        return self.session.run(self.a, feed_dict={self.px: x, self.qx: x, self.action_inp: action, nn.keep_prob: 1.0})
 
     def calcP(self, x):
-        return self.session.run(self.P, feed_dict={self.px: x})
+        return self.session.run(self.P, feed_dict={self.px: x, nn.keep_prob: 1.0})
 
     def value(self, x):
-        return self.session.run(self.v, feed_dict={self.vx: x})
+        return self.session.run(self.v, feed_dict={self.vx: x, nn.keep_prob: self.keep_prob})
 
     def actions(self, x):
-        return self.session.run(self.mu, feed_dict={self.qx: x})
+        return self.session.run(self.mu, feed_dict={self.qx: x, nn.keep_prob: 1.0})
 
     def action(self, x, explore=False):
-        action = self.session.run(self.mu, feed_dict={self.qx: x})[0]
+        action = self.session.run(
+            self.mu, feed_dict={self.qx: x, nn.keep_prob: 1.0})[0]
         if explore:
             return action + np.random.normal()
         else:
             return action
 
     def calcq(self, rewards, next_state, terminals):
-        return self.session.run(self.update, feed_dict={self.r: rewards, self.vx: next_state, self.terminal: terminals})
+        return self.session.run(self.update, feed_dict={self.r: rewards, self.vx: next_state, self.terminal: terminals, nn.keep_prob: 1.0})
 
     def storedq(self, state, action):
-        return self.session.run(self.Q, feed_dict={self.vx: state, self.px: state, self.qx: state, self.action_inp: action})
+        return self.session.run(self.Q, feed_dict={self.vx: state, self.px: state, self.qx: state, self.action_inp: action, nn.keep_prob: 1.0})
 
     def calcloss(self, state, action, rewards, next_state, terminals):
         target = self.calcq(rewards, next_state, terminals)
-        return self.session.run(self.loss, feed_dict={self.target: target, self.vx: state, self.px: state, self.qx: state, self.action_inp: action})
+        return self.session.run(self.loss, feed_dict={self.target: target, self.vx: state, self.px: state, self.qx: state, self.action_inp: action, nn.keep_prob: self.keep_prob})
 
     def coldstart(self, state, target_action):
-        return self.session.run(self.coldstart_actions, feed_dict={self.qx: state, self.target_action: target_action})
+        return self.session.run(self.coldstart_actions, feed_dict={self.qx: state, self.target_action: target_action, nn.keep_prob: self.keep_prob})
 
     def trainstep(self, state, action, rewards, next_state, terminals):
         target = self.calcq(rewards, next_state, terminals)
-        return self.session.run(self.train_step, feed_dict={self.target: target, self.vx: state, self.px: state, self.qx: state, self.action_inp: action})
+        return self.session.run(self.train_step, feed_dict={self.target: target, self.vx: state, self.px: state, self.qx: state, self.action_inp: action, nn.keep_prob: self.keep_prob})
 
     def __exit__(self):
         self.session.close()
