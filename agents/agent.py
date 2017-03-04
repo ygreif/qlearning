@@ -52,6 +52,8 @@ class Agent(object):
             cum_reward += reward
             state = next_state
             steps += 1
+            if steps > 9000 and steps % 100 == 0:
+                print "On step", steps
         return cum_reward
 
     def action(self, state):

@@ -17,8 +17,9 @@ def validate(env, agent, samples, iters, log=False):
         strat = NoExploration()
         agent.train_epoch(env, strat, learn=False)
 
-    insample_minibatch = oldmemory.minibatch(samples)
-    outsample_minibatch = oldmemory.minibatch(samples)
+    insample_memory, outsample_memory = oldmemory.split()
+    insample_minibatch = insample_memory.minibatch(samples)
+    outsample_minibatch = outsample_memory.minibatch(samples)
     onstrat_minibatch = agent.memory.minibatch(samples)
 
     agent.memory = oldmemory
@@ -35,7 +36,28 @@ def validate(env, agent, samples, iters, log=False):
         for minibatch, losses in [(insample_minibatch, insample_loss), (outsample_minibatch, outsample_loss), (onstrat_minibatch, onstrat_loss)]:
             losses.append(q.calcloss(minibatch.state, minibatch.actions,
                                      minibatch.rewards, minibatch.next_state, minibatch.terminals))
-        q.trainstep(insample_minibatch.state, insample_minibatch.actions,
-                    insample_minibatch.rewards, insample_minibatch.next_state, insample_minibatch.terminals)
+        # handle insample
+        minibatch = insample_memory.minibatch(samples)
+        q.trainstep(minibatch.state, minibatch.actions,
+                    minibatch.rewards, minibatch.next_state, minibatch.terminals)
     q.restore(checkpoint_name)
     return insample_loss, outsample_loss, onstrat_loss
+
+
+def plot(insample, outsample, onstrat):
+    import matplotlib.pyplot as plt
+    plt.plot(insample, label="in sample")
+    plt.plot(outsample, label="out sample")
+    plt.plot(onstrat, label="on strat")
+    plt.legend()
+    plt.show()
+
+    def normalize(x):
+        h = x[0]
+        return [elem / h for elem in x]
+
+    plt.plot(normalize(insample), label="in sample")
+    plt.plot(normalize(outsample), label="out sample")
+    plt.plot(normalize(onstrat), label="on strat")
+    plt.legend()
+    plt.show()
