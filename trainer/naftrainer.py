@@ -45,7 +45,7 @@ def train(env, parameters, max_epochs=400, writeevery=100, validate=False):
             print "Epoch", epoch, "Reward", r
             if validate and epoch > 0:
                 insample, outsample, onstrat = agents.validation.validate(
-                    env, a, 200, 100, log=False)
+                    env, a, 5000, 60, log=False)
                 import matplotlib.pyplot as plt
                 plt.plot(insample, label="in sample")
                 plt.plot(outsample, label="out sample")
