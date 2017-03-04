@@ -34,7 +34,10 @@ def random_parameters():
     return parameters
 
 
-def train(env, parameters, max_epochs=400, writeevery=100, validate=False):
+def train(env, parameters, max_epochs=400, writeevery=100, validate=False, validation_env=False):
+    if not validation_env:
+        validation_env = env
+
     naf = agents.naf.SetupNAF.setup(env, **parameters['naf'])
     a = agents.agent.Agent(naf)
     plots = []
@@ -45,12 +48,6 @@ def train(env, parameters, max_epochs=400, writeevery=100, validate=False):
             print "Epoch", epoch, "Reward", r
             if validate and epoch > 0:
                 insample, outsample, onstrat = agents.validation.validate(
-                    env, a, 5000, 60, log=False)
-                import matplotlib.pyplot as plt
-                plt.plot(insample, label="in sample")
-                plt.plot(outsample, label="out sample")
-                plt.plot(onstrat, label="on strat")
-                plt.legend()
-                plt.show()
-                plots.append(plt)
+                    validation_env, a, 5000, 60, log=False)
+                agents.validation.plot(insample, outsample, onstrat)
     return a, r, plots
