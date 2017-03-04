@@ -15,7 +15,7 @@ class DeltaStrategy(object):
 
 class NoExploration(object):
 
-    def __init__(self, max_steps=1000, target=1000):
+    def __init__(self, max_steps=11000, target=11000):
         self.max_steps = max_steps
         self.target = target
 
@@ -39,7 +39,7 @@ class Agent(object):
         cum_reward = False
         steps = 0
         state = env.reset()
-        while not done:  # and cum_reward < target and steps < max_steps:
+        while not done and cum_reward < target and steps < max_steps:
             action = explore(self.action(state))
             action = min(
                 max(action, env.action_space.low), env.action_space.high)
@@ -52,7 +52,7 @@ class Agent(object):
             cum_reward += reward
             state = next_state
             steps += 1
-            if steps > 9000 and steps % 100 == 0:
+            if steps > 11000 and steps % 100 == 0:
                 print "On step", steps
         return cum_reward
 
