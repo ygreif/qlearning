@@ -15,19 +15,6 @@ class Memory(object):
         self.memory.append(
             {'state': state, 'action': action, 'reward': reward, 'next_state': next_state, 'done': done})
 
-    def split(self):
-        length = len(self.memory)
-        idx_batch = list(
-            np.random.choice(np.arange(0, len(self.memory)), length))
-        idx_batch1 = idx_batch[0:length / 2]
-        idx_batch2 = idx_batch[length / 2:length]
-        mem1 = Memory(length)
-        mem2 = Memory(length)
-        for idx, mem in ((idx_batch1, mem1), (idx_batch2, mem2)):
-            for replay in [val for i, val in enumerate(self.memory) if i in idx]:
-                mem.append(**replay)
-        return mem1, mem2
-
     def minibatch(self, size):
         idx_batch = set(
             np.random.choice(np.arange(0, len(self.memory)), size))
