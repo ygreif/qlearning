@@ -2,6 +2,10 @@ import collections
 import numpy as np
 
 
+Minibatch = collections.namedtuple(
+    'Minibatch', ['state', 'actions', 'rewards', 'next_state', 'terminals'])
+
+
 class Memory(object):
 
     def __init__(self, size):
@@ -21,4 +25,7 @@ class Memory(object):
         rewards = [[replay['reward']] for replay in replays]
         next_state = [replay['next_state'] for replay in replays]
         terminals = [[0] if replay['done'] else [1] for replay in replays]
-        return state, action, rewards, next_state, terminals
+        return Minibatch(state, action, rewards, next_state, terminals)
+
+    def __len__(self):
+        return len(self.memory)

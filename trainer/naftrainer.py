@@ -3,6 +3,7 @@ import tensorflow as tf
 
 import agents.naf
 import agents.agent
+import agents.validation
 
 
 def random_nn_parameters(hidden_choices=[[5], [10], [100], [200], [200, 200], [400], [50], [10, 10], [10, 10, 10], [100, 100]], nonlinearity_choices=[tf.nn.relu, tf.nn.tanh]):
@@ -33,12 +34,23 @@ def random_parameters():
     return parameters
 
 
-def train(env, parameters, max_epochs=400, writeevery=100):
+def train(env, parameters, max_epochs=400, writeevery=100, validate=False):
     naf = agents.naf.SetupNAF.setup(env, **parameters['naf'])
     a = agents.agent.Agent(naf)
+    plots = []
     for epoch in range(max_epochs):
         strat = agents.agent.DeltaStrategy(epoch=epoch, **parameters['strat'])
         r = a.train_epoch(env, strat)
         if epoch % writeevery == 0:
             print "Epoch", epoch, "Reward", r
-    return a, r
+            if validate and epoch > 0:
+                insample, outsample, onstrat = agents.validation.validate(
+                    env, a, 5000, 60, log=False)
+                import matplotlib.pyplot as plt
+                plt.plot(insample, label="in sample")
+                plt.plot(outsample, label="out sample")
+                plt.plot(onstrat, label="on strat")
+                plt.legend()
+                plt.show()
+                plots.append(plt)
+    return a, r, plots

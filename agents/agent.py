@@ -13,14 +13,24 @@ class DeltaStrategy(object):
         return action + np.random.normal(scale=self.scale, size=len(action))
 
 
+class NoExploration(object):
+
+    def __init__(self, max_steps=1000, target=1000):
+        self.max_steps = max_steps
+        self.target = target
+
+    def explore(self, action):
+        return action
+
+
 class Agent(object):
 
-    def __init__(self, q, memory_size=1000000, minibatch_size=100):
+    def __init__(self, q, memory_size=1000000, minibatch_size=200):
         self.q = q
         self.memory = memory.Memory(memory_size)
         self.minibatch_size = minibatch_size
 
-    def train_epoch(self, env, strat):
+    def train_epoch(self, env, strat, learn=True):
         explore = strat.explore
         target = strat.target
         max_steps = strat.max_steps
@@ -29,7 +39,7 @@ class Agent(object):
         cum_reward = False
         steps = 0
         state = env.reset()
-        while not done and cum_reward < target and steps < max_steps:
+        while not done:  # and cum_reward < target and steps < max_steps:
             action = explore(self.action(state))
             action = min(
                 max(action, env.action_space.low), env.action_space.high)
@@ -37,7 +47,8 @@ class Agent(object):
                 return -99999999
             next_state, reward, done, _ = env.step(action)
             self.memory.append(state, action, reward, next_state, done)
-            self.learn()
+            if learn:
+                self.learn()
             cum_reward += reward
             state = next_state
             steps += 1
@@ -47,6 +58,6 @@ class Agent(object):
         return self.q.action([state])
 
     def learn(self):
-        state, actions, rewards, next_state, terminals = self.memory.minibatch(
-            self.minibatch_size)
-        self.q.trainstep(state, actions, rewards, next_state, terminals)
+        minibatch = self.memory.minibatch(self.minibatch_size)
+        self.q.trainstep(minibatch.state, minibatch.actions,
+                         minibatch.rewards, minibatch.next_state, minibatch.terminals)

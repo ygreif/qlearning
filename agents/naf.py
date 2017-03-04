@@ -25,13 +25,14 @@ class SetupNAF(object):
         # initialize NAF so actions are in range
         n = 1000
         success = False
-        obs_space_small = gym.spaces.box.Box(-100, 100, shape=(4,))
+        obs_space_small = gym.spaces.box.Box(-100,
+                                             100, env.observation_space.shape)
         print obs_space_small.shape
         print env.observation_space.shape
         target_action = low + (high - low) / 2.0
         targets = [target_action for i in range(n)]
         for _ in range(1000):
-#            states = [env.observation_space.sample() for i in range(n)]
+            #            states = [env.observation_space.sample() for i in range(n)]
             states = [obs_space_small.sample() for i in range(n)]
             naf.coldstart(states, targets)
             states = [obs_space_small.sample() for i in range(n)]
@@ -108,6 +109,14 @@ class NAFApproximation(object):
 
         self.train_step = tf.train.AdamOptimizer(
             learning_rate=learning_rate).minimize(self.loss + self.actionloss)
+
+    def checkpoint(self, checkpoint_file):
+        saver = tf.train.Saver()
+        saver.save(self.session, checkpoint_file)
+
+    def restore(self, checkpoint_file):
+        saver = tf.train.Saver()
+        saver.restore(self.session, checkpoint_file)
 
     def calcA(self, x, action):
         return self.session.run(self.a, feed_dict={self.px: x, self.qx: x, self.action_inp: action})
