@@ -17,9 +17,8 @@ def validate(env, agent, samples, iters, log=False):
         strat = NoExploration()
         agent.train_epoch(env, strat, learn=False)
 
-    insample_minibatch = oldmemory.minibatch(samples)
-    outsample_minibatch = oldmemory.minibatch(samples)
-    onstrat_minibatch = agent.memory.minibatch(samples)
+    insample_memory, outsample_memory = oldmemory.split()
+    onstrat_memory = agent.memory
 
     agent.memory = oldmemory
 
@@ -32,9 +31,11 @@ def validate(env, agent, samples, iters, log=False):
     for i in range(iters):
         if log:
             print "On iteration", i
-        for minibatch, losses in [(insample_minibatch, insample_loss), (outsample_minibatch, outsample_loss), (onstrat_minibatch, onstrat_loss)]:
+        for mem, losses in [(insample_memory, insample_loss), (outsample_memory, outsample_loss), (onstrat_memory, onstrat_loss)]:
+            minibatch = mem.minibatch(samples)
             losses.append(q.calcloss(minibatch.state, minibatch.actions,
                                      minibatch.rewards, minibatch.next_state, minibatch.terminals))
+        insample_minibatch = insample_memory.minibatch(samples)
         q.trainstep(insample_minibatch.state, insample_minibatch.actions,
                     insample_minibatch.rewards, insample_minibatch.next_state, insample_minibatch.terminals)
     q.restore(checkpoint_name)
