@@ -52,7 +52,7 @@ class NAFApproximation(object):
         L = tf.matrix_set_diag(M * self.mask, diag)
         return tf.matmul(L, tf.transpose(L))
 
-    def __init__(self, nnv, nnp, nnq, low, high, actiondim, learning_rate, discount, keep_prob=.5):
+    def __init__(self, nnv, nnp, nnq, low, high, actiondim, learning_rate, discount, keep_prob=1):
         self.discount = tf.constant(discount, dtype=tf.float32)
         self.low = tf.constant(low, dtype=tf.float32)
         self.high = tf.constant(high, dtype=tf.float32)
@@ -140,7 +140,7 @@ class NAFApproximation(object):
             return action
 
     def calcq(self, rewards, next_state, terminals):
-        return self.session.run(self.update, feed_dict={self.r: rewards, self.vx: next_state, self.terminal: terminals, nn.keep_prob: 1.0})
+        return self.session.run(self.update, feed_dict={self.r: rewards, self.vx: next_state, self.terminal: terminals, nn.keep_prob: self.keep_prob})
 
     def storedq(self, state, action):
         return self.session.run(self.Q, feed_dict={self.vx: state, self.px: state, self.qx: state, self.action_inp: action, nn.keep_prob: 1.0})

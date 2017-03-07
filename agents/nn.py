@@ -7,7 +7,7 @@ keep_prob = tf.placeholder(tf.float32)
 
 class FullyConnectedLayer(object):
 
-    def __init__(self, inp, dim, nonlinearity=False, init='normal', init_bias=0.0):
+    def __init__(self, inp, dim, nonlinearity=False, init='normal', init_bias=0.0, use_dropout=False):
         if init == 'normal':
             self.W = tf.Variable(tf.random_normal(dim))
             self.b = tf.Variable(tf.constant(1.0, shape=(1, dim[1])))
@@ -16,17 +16,19 @@ class FullyConnectedLayer(object):
             self.W = tf.Variable(
                 tf.random_uniform(dim, minval=-1 * bound, maxval=bound))
             self.b = tf.Variable(tf.zeros(dim[1]))
-
-        drop_out = tf.nn.dropout(tf.matmul(inp, self.W) + self.b, keep_prob)
         if nonlinearity:
-            self.out = nonlinearity(drop_out)
+            h = nonlinearity(tf.matmul(inp, self.W) + self.b)
         else:
-            self.out = drop_out
+            h = tf.matmul(inp, self.W) + self.b
+        if use_dropout:
+            self.out = tf.nn.dropout(h, keep_prob)
+        else:
+            self.out = h
 
 
 class NeuralNetwork(object):
 
-    def __init__(self, indim, enddim, hidden_layers=[10], nonlinearity=False, init='normal', init_bias=0.0, name='default'):
+    def __init__(self, indim, enddim, hidden_layers=[10], nonlinearity=False, init='normal', init_bias=0.0, name='default', use_dropout=False):
         self.layers = []
         self.x = tf.placeholder(tf.float32, [None, indim], name=name)
         self.indim = indim
@@ -36,7 +38,7 @@ class NeuralNetwork(object):
         prev_dim = indim
         for out_dim in hidden_layers:
             self.layers.append(
-                FullyConnectedLayer(inp, (prev_dim, out_dim), nonlinearity=nonlinearity, init=init, init_bias=0.0))
+                FullyConnectedLayer(inp, (prev_dim, out_dim), nonlinearity=nonlinearity, init=init, init_bias=0.0, use_dropout=use_dropout))
             inp = self.layers[-1].out
             prev_dim = out_dim
         self.layers.append(FullyConnectedLayer(

@@ -25,7 +25,7 @@ class NoExploration(object):
 
 class Agent(object):
 
-    def __init__(self, q, memory_size=1000000, minibatch_size=200):
+    def __init__(self, q, memory_size=100000000, minibatch_size=300):
         self.q = q
         self.memory = memory.Memory(memory_size)
         self.minibatch_size = minibatch_size
