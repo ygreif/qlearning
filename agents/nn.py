@@ -1,6 +1,62 @@
 import tensorflow as tf
 import math
 
+epsilon = 1e-3
+
+
+class NewFullyConnectedLayer(object):
+
+    def __init__(self, inp, dim, nonlinearity=False, keep_prob=1.0, batch_norm=False):
+        self.W = tf.Variable(tf.random_normal(dim))
+        self.b = tf.Variable(tf.constant(1.0, shape=(1, dim[1])))
+        self.train_keep_prob = tf.constant(keep_prob, tf.float32)
+        self.test_keep_prob = tf.constant(1.0, tf.float32)
+
+        # training
+        if batch_norm:
+            decay = tf.constant(batch_norm, tf.float32)
+            scale = tf.Variable(tf.ones([inp.get_shape()[-1]]))
+            beta = tf.Variable(tf.zeros([inp.get_shape()[-1]]))
+
+            pop_mean = tf.Variable(
+                tf.zeros([inp.get_shape()[-1]]), trainable=False)
+            pop_var = tf.Variable(
+                tf.ones([inp.get_shape()[-1]]), trainable=False)
+
+            batch_mean, batch_var = tf.nn.moments(inp, [0])
+            train_mean = tf.assign(pop_mean,
+                                   pop_mean * decay + batch_mean * (1 - decay))
+            train_var = tf.assign(pop_var,
+                                  pop_var * decay + batch_var * (1 - decay))
+            with tf.control_dependencies([train_mean, train_var]):
+                inptrain = tf.nn.batch_normalization(
+                    inp, batch_mean, batch_var, beta, scale, epsilon)
+        else:
+            inptrain = inp
+        if nonlinearity:
+            htrain = nonlinearity(tf.matmul(inptrain, self.W) + self.b)
+        else:
+            htrain = tf.matmul(inptrain, self.W) + self.b
+        if keep_prob < 1:
+            self.trainout = tf.nn.dropout(htrain, self.train_keep_prob)
+        else:
+            self.trainout = htrain
+
+        # test
+        if batch_norm:
+            inptrain = tf.nn.batch_normalization(
+                inp, pop_mean, pop_var, beta, scale, epsilon)
+        else:
+            inptrain = inp
+        if nonlinearity:
+            htest = nonlinearity(tf.matmul(inp, self.W) + self.b)
+        else:
+            htest = tf.matmul(inp, self.W) + self.b
+        if keep_prob < 1:
+            self.testnout = tf.nn.dropout(htest, self.test_keep_prob)
+        else:
+            self.testout = htrain
+
 
 keep_prob = tf.placeholder(tf.float32)
 

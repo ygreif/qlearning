@@ -42,3 +42,23 @@ class Memory(object):
 
     def __len__(self):
         return len(self.memory)
+
+
+class WeightedMemory(object):
+
+    def __init__(self, size_negative, size_positive, perc):
+        self.negative = Memory(size_negative)
+        self.positive = Memory(size_positive)
+        self.perc = perc
+
+    def append(self, state, action, reward, next_state, done):
+        if done:
+            self.negative.append(state, action, reward, next_state, done)
+        else:
+            self.negative.append(state, action, reward, next_state, done)
+
+    def minibatch(self, size):
+        negatives = self.negative.minibatch(int(size * self.perc))
+        positives = self.negative.minibatch(int(size * (1.0 - self.perc)))
+
+        return Minibatch(negatives.state + positives.state, negatives.actions + positives.actions, negatives.rewards + positives.rewards, negatives.next_state + positives.next_state, negatives.terminals + positives.terminals)

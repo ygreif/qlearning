@@ -18,7 +18,7 @@ class SetupNAF(object):
         print low, high
         nnv = nn.NeuralNetwork(indim, 1, **nnvParameters)
         nnp = nn.NeuralNetwork(indim, actiondim ** 2, **nnpParameters)
-        nnq = nn.NeuralNetwork(indim, 1, **nnqParameters)
+        nnq = nn.NeuralNetwork(indim, actiondim, **nnqParameters)
         naf = NAFApproximation(
             nnv, nnp, nnq, low, high, actiondim, **learningParameters)
 
@@ -32,7 +32,7 @@ class SetupNAF(object):
         target_action = low + (high - low) / 2.0
         targets = [target_action for i in range(n)]
         for _ in range(1000):
-            #            states = [env.observation_space.sample() for i in range(n)]
+            # states = [env.observation_space.sample() for i in range(n)]
             states = [obs_space_small.sample() for i in range(n)]
             naf.coldstart(states, targets)
             states = [obs_space_small.sample() for i in range(n)]
@@ -82,6 +82,7 @@ class NAFApproximation(object):
             tf.float32, [None, actiondim], name="action")
         self.qx = nn.x
         self.mu = nn.out
+        print "DIMENSION", self.mu
 
         self.batch = tf.reshape(self.action_inp - self.mu, [-1, 1, actiondim])
         self.a = tf.reshape(tf.batch_matmul(

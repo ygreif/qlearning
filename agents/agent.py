@@ -41,9 +41,9 @@ class Agent(object):
         state = env.reset()
         while not done and cum_reward < target and steps < max_steps:
             action = explore(self.action(state))
-            action = min(
-                max(action, env.action_space.low), env.action_space.high)
-            if np.isnan(action):
+            action = np.minimum(
+                np.maximum(action, env.action_space.low), env.action_space.high)
+            if np.isnan(action).any():
                 return -99999999
             next_state, reward, done, _ = env.step(action)
             self.memory.append(state, action, reward, next_state, done)
@@ -52,6 +52,7 @@ class Agent(object):
             cum_reward += reward
             state = next_state
             steps += 1
+            env.render()
             if steps > 11000 and steps % 100 == 0:
                 print "On step", steps
         return cum_reward
