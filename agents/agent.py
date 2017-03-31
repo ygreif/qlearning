@@ -52,7 +52,6 @@ class Agent(object):
             cum_reward += reward
             state = next_state
             steps += 1
-            env.render()
             if steps > 11000 and steps % 100 == 0:
                 print "On step", steps
         return cum_reward
