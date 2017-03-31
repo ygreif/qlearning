@@ -6,7 +6,7 @@ import agents.agent
 import agents.validation
 
 
-def random_nn_parameters(hidden_choices=[[5], [10], [100], [200], [200, 200], [400], [50], [10, 10], [10, 10, 10], [100, 100]], nonlinearity_choices=[tf.nn.relu, tf.nn.tanh]):
+def random_nn_parameters(hidden_choices=[[5], [10], [100], [200], [500], [500, 500], [500, 500, 500], [200, 200], [1000], [50], [10, 10], [10, 10, 10], [100, 100, 100], [100, 100]], nonlinearity_choices=[tf.nn.relu, tf.nn.tanh]):
     return {'hidden_layers': np.random.choice(hidden_choices), 'nonlinearity': np.random.choice(nonlinearity_choices)}
 
 
@@ -20,9 +20,7 @@ def random_strat(scale=[.1, .5, 1], decay=[50, 100, 200, 1000, 100000]):
 
 def random_parameters():
     nnvParameters = random_nn_parameters()
-    nnpchoices = [[1], [5], [10], [10], [1, 1],
-
-                  ]
+    nnpchoices = [[1], [5], [10], [10, 10], [1, 1]]
     nnpParameters = random_nn_parameters(
         hidden_choices=nnpchoices)
     nnqParameters = random_nn_parameters()
