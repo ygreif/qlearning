@@ -85,8 +85,8 @@ class NAFApproximation(object):
         print "DIMENSION", self.mu
 
         self.batch = tf.reshape(self.action_inp - self.mu, [-1, 1, actiondim])
-        self.a = tf.reshape(tf.batch_matmul(
-            tf.batch_matmul(self.batch, self.P), tf.transpose(self.batch, [0, 2, 1])), [-1, 1])
+        self.a = tf.reshape(tf.matmul(
+            tf.matmul(self.batch, self.P), tf.transpose(self.batch, [0, 2, 1])), [-1, 1])
         self.Q = self.v - .5 * self.a
 
         # coldstart action
