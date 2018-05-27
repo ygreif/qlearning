@@ -16,9 +16,12 @@ class SetupNAF(object):
         low = env.action_space.low
         high = env.action_space.high
         print low, high
-        nnv = nn.NeuralNetwork(indim, 1, **nnvParameters)
-        nnp = nn.NeuralNetwork(indim, actiondim ** 2, **nnpParameters)
-        nnq = nn.NeuralNetwork(indim, actiondim, **nnqParameters)
+        with tf.name_scope('nnv') as scope:
+            nnv = nn.NeuralNetwork(indim, 1, **nnvParameters)
+        with tf.name_scope('nnp') as scope:
+            nnp = nn.NeuralNetwork(indim, actiondim ** 2, **nnpParameters)
+        with tf.name_scope('nnq') as scope:
+            nnq = nn.NeuralNetwork(indim, actiondim, **nnqParameters)
         naf = NAFApproximation(
             nnv, nnp, nnq, low, high, actiondim, **learningParameters)
 
@@ -52,7 +55,7 @@ class NAFApproximation(object):
         L = tf.matrix_set_diag(M * self.mask, diag)
         return tf.matmul(L, tf.transpose(L))
 
-    def __init__(self, nnv, nnp, nnq, low, high, actiondim, learning_rate, discount, keep_prob=1):
+    def __init__(self, nnv, nnp, nnq, low, high, actiondim, learning_rate, discount, keep_prob=1, metadata=True):
         self.discount = tf.constant(discount, dtype=tf.float32)
         self.low = tf.constant(low, dtype=tf.float32)
         self.high = tf.constant(high, dtype=tf.float32)
@@ -68,46 +71,61 @@ class NAFApproximation(object):
         init = tf.global_variables_initializer()
         self.session = tf.Session()
         self.session.run(init)
+        if metadata:
+            self.options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+            self.metadata = tf.RunMetadata()
+            self.writer = tf.summary.FileWriter(
+                logdir='/tmp/debug_tf4', graph=self.session.graph)
+            self.iter = 0
+        else:
+            self.metadata = None
+            self.options = None
 
     def _setup_p_calculation(self, nn, actiondim):
-        mask = np.ones((actiondim, actiondim))
-        mask[np.triu_indices(actiondim)] = 0
-        self.mask = tf.constant(mask, dtype=tf.float32)
-        self.px = nn.x
-        self.P = tf.map_fn(self.to_semi_definite,
-                           tf.reshape(nn.out, (-1, actiondim, actiondim)))
+        with tf.name_scope("pcalc") as scope:
+            mask = np.ones((actiondim, actiondim))
+            mask[np.triu_indices(actiondim)] = 0
+            self.mask = tf.constant(mask, dtype=tf.float32)
+            self.px = nn.x
+            self.P = tf.map_fn(self.to_semi_definite,
+                               tf.reshape(nn.out, (-1, actiondim, actiondim)), name="map_fn")
 
     def _setup_q_calculation(self, nn, actiondim):
-        self.action_inp = tf.placeholder(
-            tf.float32, [None, actiondim], name="action")
-        self.qx = nn.x
-        self.mu = nn.out
-        print "DIMENSION", self.mu
+        with tf.name_scope("qcalc") as scope:
+            self.action_inp = tf.placeholder(
+                tf.float32, [None, actiondim], name="action")
+            self.qx = nn.x
+            self.mu = nn.out
+            print "DIMENSION", self.mu
 
-        self.batch = tf.reshape(self.action_inp - self.mu, [-1, 1, actiondim])
-        self.a = tf.reshape(tf.matmul(
-            tf.matmul(self.batch, self.P), tf.transpose(self.batch, [0, 2, 1])), [-1, 1])
-        self.Q = self.v - .5 * self.a
+            self.batch = tf.reshape(
+                self.action_inp - self.mu, [-1, 1, actiondim])
+            self.a = tf.reshape(tf.matmul(
+                tf.matmul(self.batch, self.P), tf.transpose(self.batch, [0, 2, 1])), [-1, 1])
+            self.Q = self.v - .5 * self.a
 
-        # coldstart action
-        self.target_action = tf.placeholder(
-            tf.float32, [None, actiondim], name="target_action")
-        coldstart_loss = tf.reduce_sum(tf.square(self.target_action - self.mu))
-        self.coldstart_actions = tf.train.AdamOptimizer(
-            learning_rate=.1).minimize(coldstart_loss)
+            # coldstart action
+            self.target_action = tf.placeholder(
+                tf.float32, [None, actiondim], name="target_action")
+            coldstart_loss = tf.reduce_sum(
+                tf.square(self.target_action - self.mu))
+            self.coldstart_actions = tf.train.AdamOptimizer(
+                learning_rate=.1).minimize(coldstart_loss)
 
     def _setup_next_q_calulcation(self):
-        self.r = tf.placeholder(tf.float32, [None, 1], name="reward")
-        self.terminal = tf.placeholder(tf.float32, [None, 1])
+        with tf.name_scope("nextq") as scope:
+            self.r = tf.placeholder(tf.float32, [None, 1], name="reward")
+            self.terminal = tf.placeholder(tf.float32, [None, 1])
 
-        self.update = self.v * self.terminal * self.discount + self.r
+            self.update = self.v * self.terminal * self.discount + self.r
 
     def _setup_train_step(self, learning_rate):
-        self.target = tf.placeholder(tf.float32, [None, 1])
-        self.actionloss = tf.reduce_sum(tf.abs(tf.to_float(tf.greater(self.mu, self.high)) * self.mu + tf.to_float(tf.less(
-            self.mu, self.low)) * self.mu)) * 100
-        self.loss = tf.reduce_sum(
-            tf.square(self.target - self.Q))
+        with tf.name_scope("trainstep") as scope:
+            self.target = tf.placeholder(tf.float32, [None, 1])
+            self.actionloss = tf.reduce_sum(tf.abs(tf.to_float(tf.greater(self.mu, self.high)) * self.mu + tf.to_float(tf.less(
+                                                                                                                       self.mu, self.low)) * self.mu)) * 100
+            self.loss = tf.reduce_sum(
+                tf.square(self.target - self.Q))
 
         self.train_step = tf.train.AdamOptimizer(
             learning_rate=learning_rate).minimize(self.loss + self.actionloss)
@@ -134,14 +152,21 @@ class NAFApproximation(object):
 
     def action(self, x, explore=False):
         action = self.session.run(
-            self.mu, feed_dict={self.qx: x, nn.keep_prob: 1.0})[0]
+            self.mu, feed_dict={self.qx: x, nn.keep_prob: 1.0},
+            options=self.options, run_metadata=self.metadata)[0]
+        if self.metadata:
+            self.writer.add_run_metadata(self.metadata, 'action%d' % self.iter)
         if explore:
             return action + np.random.normal()
         else:
             return action
 
     def calcq(self, rewards, next_state, terminals):
-        return self.session.run(self.update, feed_dict={self.r: rewards, self.vx: next_state, self.terminal: terminals, nn.keep_prob: self.keep_prob})
+        res = self.session.run(self.update, feed_dict={
+                               self.r: rewards, self.vx: next_state, self.terminal: terminals, nn.keep_prob: self.keep_prob}, options=self.options, run_metadata=self.metadata)
+        if self.metadata:
+            self.writer.add_run_metadata(self.metadata, 'calcq%d' % self.iter)
+        return res
 
     def storedq(self, state, action):
         return self.session.run(self.Q, feed_dict={self.vx: state, self.px: state, self.qx: state, self.action_inp: action, nn.keep_prob: 1.0})
@@ -155,7 +180,12 @@ class NAFApproximation(object):
 
     def trainstep(self, state, action, rewards, next_state, terminals):
         target = self.calcq(rewards, next_state, terminals)
-        return self.session.run(self.train_step, feed_dict={self.target: target, self.vx: state, self.px: state, self.qx: state, self.action_inp: action, nn.keep_prob: self.keep_prob})
+        res = self.session.run(self.train_step, feed_dict={self.target: target, self.vx: state, self.px: state, self.qx:
+                               state, self.action_inp: action, nn.keep_prob: self.keep_prob}, options=self.options, run_metadata=self.metadata)
+        if self.metadata:
+            self.writer.add_run_metadata(self.metadata, 'train%d' % self.iter)
+            self.iter += 1
+        return res
 
     def __exit__(self):
         self.session.close()

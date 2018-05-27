@@ -24,6 +24,6 @@ env = gym.make('Pendulum-v0')
 import time
 s = time.time()
 agent, reward, plots = naftrainer.train(
-    env, params, max_epochs=30, writeevery=1, validate=False)
+    env, params, max_epochs=1, writeevery=1, validate=False)
 e = time.time()
 print s, e, s - e
