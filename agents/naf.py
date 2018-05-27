@@ -17,7 +17,11 @@ class SetupNAF(object):
         high = env.action_space.high
         print low, high
         nnv = nn.NeuralNetwork(indim, 1, **nnvParameters)
-        nnp = nn.NeuralNetwork(indim, actiondim ** 2, **nnpParameters)
+        if actiondim == 1:
+            pdim = 1
+        else:
+            pdim = (actiondim) * (actiondim + 1) / 2
+        nnp = nn.NeuralNetwork(indim, pdim, **nnpParameters)
         nnq = nn.NeuralNetwork(indim, actiondim, **nnqParameters)
         naf = NAFApproximation(
             nnv, nnp, nnq, low, high, actiondim, **learningParameters)
@@ -74,8 +78,12 @@ class NAFApproximation(object):
         mask[np.triu_indices(actiondim)] = 0
         self.mask = tf.constant(mask, dtype=tf.float32)
         self.px = nn.x
-        self.P = tf.map_fn(self.to_semi_definite,
-                           tf.reshape(nn.out, (-1, actiondim, actiondim)))
+
+        upper_triang = tf.exp(
+            tf.contrib.distributions.fill_triangular(nn.out))
+        diag = tf.matrix_diag_part(upper_triang)
+        L = tf.matrix_set_diag(upper_triang * mask, diag)
+        self.P = tf.matmul(L, tf.transpose(L, perm=[0, 2, 1]))
 
     def _setup_q_calculation(self, nn, actiondim):
         self.action_inp = tf.placeholder(
